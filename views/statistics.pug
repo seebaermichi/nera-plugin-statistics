@@ -1,0 +1,15 @@
+if (app.statistics.topic.length > 0)
+  h2 Topics
+  ul
+    each item in app.statistics.topic
+      li
+        span #{ item.name }:&nbsp;
+        span #{ item.amount }
+
+if (app.statistics.category.length > 0)
+  h2 Categories
+  ul
+    each item in app.statistics.category
+      li
+        span #{ item.name }:&nbsp;
+        span #{ item.amount }
