@@ -1,3 +1,11 @@
+# Properties to count across all pages
 count:
   - category
   - topic
+  - tags
+
+# Optional: Display settings
+display:
+  show_counts: true
+  sort_by: "name" # "name" or "count"
+  sort_order: "asc" # "asc" or "desc"

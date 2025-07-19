@@ -1,0 +1,11 @@
+if app.statistics
+    .statistics.statistics--list
+        each items, category in app.statistics
+            if items && items.length > 0
+                .statistics__category
+                    h3.statistics__title= category.charAt(0).toUpperCase() + category.slice(1)
+                    ul.statistics__list
+                        each item in items
+                            li.statistics__item
+                                span.statistics__name= item.name
+                                span.statistics__count= item.amount

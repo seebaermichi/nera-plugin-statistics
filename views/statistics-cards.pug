@@ -1,0 +1,11 @@
+if app.statistics
+    .statistics.statistics--cards
+        each items, category in app.statistics
+            if items && items.length > 0
+                .statistics__category
+                    h3.statistics__title= category.charAt(0).toUpperCase() + category.slice(1)
+                    .statistics__cards
+                        each item in items
+                            .statistics__card
+                                .statistics__card-name= item.name
+                                .statistics__card-count= item.amount

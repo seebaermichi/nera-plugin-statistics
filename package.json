@@ -1,16 +1,60 @@
 {
-  "name": "statistics",
-  "version": "1.0.0",
-  "description": "A plugin for static side generator nera to create a simple statistic of given topics, categories, etc.",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "“Michael <micha.becker79@gmail.com> (https://github.com/seebaermichi)",
-  "license": "ISC",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/seebaermichi/nera-plugin-statistics"
-  }
+    "name": "@nera-static/plugin-statistics",
+    "version": "2.0.0",
+    "description": "A plugin for the Nera static site generator that creates statistics by counting page properties like categories, topics, or any other metadata field.",
+    "main": "index.js",
+    "scripts": {
+        "publish-template": "node ./bin/publish-template.js",
+        "lint": "eslint .",
+        "test": "vitest"
+    },
+    "type": "module",
+    "exports": {
+        ".": "./index.js"
+    },
+    "bin": {
+        "nera-statistics": "./bin/publish-template.js"
+    },
+    "files": [
+        "bin",
+        "config",
+        "views",
+        "index.js"
+    ],
+    "keywords": [
+        "nera",
+        "plugin",
+        "statistics",
+        "count",
+        "categories",
+        "topics",
+        "static-site",
+        "static-site-generator",
+        "metadata",
+        "analytics"
+    ],
+    "author": "Michael Becker",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/seebaermichi/nera-plugin-statistics"
+    },
+    "bugs": {
+        "url": "https://github.com/seebaermichi/nera-plugin-statistics/issues"
+    },
+    "homepage": "https://github.com/seebaermichi/nera-plugin-statistics#readme",
+    "dependencies": {
+        "@nera-static/plugin-utils": "^1.1.0"
+    },
+    "engines": {
+        "node": ">=18"
+    },
+    "devDependencies": {
+        "cheerio": "^1.1.0",
+        "eslint": "^9.31.0",
+        "husky": "^9.1.7",
+        "pug": "^3.0.3",
+        "vitest": "^3.2.4"
+    },
+    "sideEffects": false
 }
