@@ -1,15 +1,16 @@
 # @nera-static/plugin-statistics
 
-A plugin for the [Nera](https://github.com/seebaermichi/nera) static site generator that creates statistics by counting page properties like categories, topics, tags, or any other metadata field.
+A plugin for the [Nera](https://github.com/seebaermichi/nera) static site generator that creates statistics by counting metadata properties like categories, topics, tags, or any other field across your content.
 
 ## ✨ Features
 
--   Count any page metadata property across your site
--   Automatically sorts results alphabetically
--   Configurable properties via YAML configuration
--   Multiple display templates (table, cards, list)
--   Ready-to-use Pug templates with BEM CSS classes
--   Full ES Module support
+- Count any page meta property (e.g., `tags`, `category`, `topic`)
+- Sorts counts alphabetically or by frequency
+- Configurable via `config/statistics.yaml`
+- Includes table, card, and list-based Pug templates
+- Access statistics globally via `app.statistics`
+- Uses BEM CSS methodology
+- Full compatibility with Nera v4.1.0+
 
 ## 🚀 Installation
 
@@ -19,31 +20,29 @@ Install the plugin in your Nera project:
 npm install @nera-static/plugin-statistics
 ```
 
-Nera will automatically detect the plugin and generate statistics during the build.
+Nera will automatically detect and execute the plugin during the build.
 
-## 🛠️ Usage
+## ⚙️ Configuration
 
-### Configuration
-
-Configure which properties to count in your project:
+Create a configuration file at `config/statistics.yaml`:
 
 ```yaml
-# config/statistics.yaml
 count:
-    - category
-    - topic
-    - tags
+  - category
+  - topic
+  - tags
 
-# Optional: Display settings
 display:
-    show_counts: true
-    sort_by: 'name' # "name" or "count"
-    sort_order: 'asc' # "asc" or "desc"
+  show_counts: true
+  sort_by: name      # "name" or "count"
+  sort_order: asc    # "asc" or "desc"
 ```
 
-### Page Metadata
+## 🧩 Usage
 
-Add the configured properties to your markdown pages:
+### Page frontmatter
+
+Add relevant metadata to your content pages:
 
 ```yaml
 ---
@@ -54,81 +53,69 @@ tags: frontend
 ---
 ```
 
-### Publish Templates
+### Access in templates
 
-Copy the default templates to your project:
+The plugin adds statistics data to `app.statistics`:
+
+```javascript
+app.statistics = {
+  category: [ { name: 'Tech', amount: 5 } ],
+  topic: [ { name: 'JavaScript', amount: 4 } ],
+  tags: [ { name: 'frontend', amount: 6 } ]
+}
+```
+
+### Include default templates
 
 ```bash
 npx @nera-static/plugin-statistics run publish-template
 ```
 
-This copies the templates to:
+This copies:
 
 ```
-views/vendor/plugin-statistics/statistics.pug
-views/vendor/plugin-statistics/statistics-cards.pug
-views/vendor/plugin-statistics/statistics-list.pug
+views/vendor/plugin-statistics/
+├── statistics.pug         # Table layout
+├── statistics-cards.pug   # Card layout
+└── statistics-list.pug    # List layout
 ```
 
-### Using the templates
-
-Include the statistics in your Pug templates:
+### Use in your layouts
 
 ```pug
 include views/vendor/plugin-statistics/statistics
-// or
 include views/vendor/plugin-statistics/statistics-cards
-// or
 include views/vendor/plugin-statistics/statistics-list
 ```
 
-The plugin provides three different template files:
+## 🎨 Styling
 
--   `statistics.pug` - Table format with headers (default)
--   `statistics-cards.pug` - Card-based layout
--   `statistics-list.pug` - Simple list format
+Templates use BEM CSS methodology:
 
-### Available Data
+```css
+.statistics { }
+.statistics__category { }
+.statistics__title { }
+.statistics__table { }
+.statistics__header { }
+.statistics__row { }
+.statistics__cell { }
+.statistics__cell--count { }
 
-The plugin adds statistics to the `app` object:
+.statistics__cards { }
+.statistics__card { }
+.statistics__card-name { }
+.statistics__card-count { }
 
-```javascript
-app.statistics = {
-    category: [
-        { name: 'Tech', amount: 5 },
-        { name: 'Design', amount: 3 },
-    ],
-    topic: [
-        { name: 'JavaScript', amount: 4 },
-        { name: 'CSS', amount: 2 },
-    ],
-    tags: [
-        { name: 'frontend', amount: 6 },
-        { name: 'backend', amount: 2 },
-    ],
-}
+.statistics__list { }
+.statistics__item { }
+.statistics__name { }
+.statistics__count { }
 ```
 
-## 🎨 CSS Classes
+## 📊 Generated Output
 
-The plugin uses BEM (Block Element Modifier) methodology:
-
--   `.statistics` - Main statistics container
--   `.statistics__category` - Category section
--   `.statistics__title` - Category title
--   `.statistics__table` - Table layout
--   `.statistics__header` - Table headers
--   `.statistics__row` - Table rows
--   `.statistics__cell` - Table cells
--   `.statistics__cell--count` - Count cell modifier
--   `.statistics__cards` - Cards container
--   `.statistics__card` - Individual card
--   `.statistics__card-name` - Card name
--   `.statistics__card-count` - Card count
--   `.statistics__list` - List container
--   `.statistics__item` - List item
--   `.statistics__name` - Item name
--   `.statistics__count` - Item count
+The plugin counts configured metadata across all pages and makes the result available via `app.statistics`.
 
 ## 🧪 Development
 
@@ -138,22 +125,12 @@ npm test
 npm run lint
 ```
 
-Tests use [Vitest](https://vitest.dev) and cover:
+Tests use [Vitest](https://vitest.dev) and validate:
 
--   Property counting functionality
--   Alphabetical sorting
--   Data structure validation
--   Edge cases and error handling
-
-### 🔄 Compatibility
-
--   **Nera v4.1.0+**: Full compatibility with latest static site generator
--   **Node.js 18+**: Modern JavaScript features and ES modules
--   **Plugin Utils v1.1.0+**: Enhanced plugin utilities integration
-
-### 🏗️ Architecture
-
-This plugin uses the `getAppData()` function to process page metadata and generate statistics. It counts occurrences of configured properties across all pages and provides the data globally via the `app.statistics` object.
+- Property counting logic
+- Sort options
+- Output structure
+- Edge cases and invalid data
 
 ## 🧑‍💻 Author
 
@@ -162,10 +139,15 @@ Michael Becker
 
 ## 🔗 Links
 
--   [Plugin Repository](https://github.com/seebaermichi/nera-plugin-statistics)
--   [NPM Package](https://www.npmjs.com/package/@nera-static/plugin-statistics)
--   [Nera Static Site Generator](https://github.com/seebaermichi/nera)
--   [Plugin Documentation](https://github.com/seebaermichi/nera#plugins)
+- [Plugin Repository](https://github.com/seebaermichi/nera-plugin-statistics)
+- [NPM Package](https://www.npmjs.com/package/@nera-static/plugin-statistics)
+- [Nera Static Site Generator](https://github.com/seebaermichi/nera)
+
+## 🧩 Compatibility
+
+- **Nera**: v4.1.0+
+- **Node.js**: >= 18
+- **Plugin API**: Uses `getAppData()` to count page metadata
 
 ## 📦 License
 
