@@ -33,10 +33,12 @@ count:
   - tags
 
 display:
-  show_counts: true
   sort_by: name      # "name" or "count"
   sort_order: asc    # "asc" or "desc"
 ```
+
+Configuration is read fresh on every build, so edits are picked up during
+`npm run dev` without a restart.
 
 ## 🧩 Usage
 
@@ -53,6 +55,15 @@ tags: frontend
 ---
 ```
 
+Any frontmatter field can be counted, and the value does not have to be a
+string:
+
+-   **Lists** are counted entry by entry, so `tags: [frontend, css]` adds one to
+    `frontend` and one to `css`.
+-   **Numbers and booleans** are counted as their text form — `year: 2024`
+    appears as `2024`, `featured: false` as `false`. `0` and `false` are real
+    values and are counted; only `null` and empty strings are ignored.
+
 ### Access in templates
 
 The plugin adds statistics data to `app.statistics`:
@@ -68,7 +79,14 @@ app.statistics = {
 ### Include default templates
 
 ```bash
-npx @nera-static/plugin-statistics run publish-template
+npx nera-statistics
+```
+
+Publishing **skips templates that already exist**, so your edits are safe. To
+pull in newer versions and discard your local changes:
+
+```bash
+npx nera-statistics --force
 ```
 
 This copies:
@@ -83,10 +101,16 @@ views/vendor/plugin-statistics/
 ### Use in your layouts
 
 ```pug
-include views/vendor/plugin-statistics/statistics
-include views/vendor/plugin-statistics/statistics-cards
-include views/vendor/plugin-statistics/statistics-list
+include ../vendor/plugin-statistics/statistics
+include ../vendor/plugin-statistics/statistics-cards
+include ../vendor/plugin-statistics/statistics-list
 ```
+
+Include paths are relative to the including file, so the `../` above assumes a
+layout in `views/layouts/`. Adjust the number of `../` segments to match.
+
+The templates start their headings at `h3`, so place them under an `h2` in your
+layout to keep the heading order intact.
 
 ## 🎨 Styling
 

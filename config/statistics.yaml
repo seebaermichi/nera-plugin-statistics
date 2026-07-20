@@ -6,6 +6,5 @@ count:
 
 # Optional: Display settings
 display:
-  show_counts: true
   sort_by: "name" # "name" or "count"
   sort_order: "asc" # "asc" or "desc"

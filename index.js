@@ -1,16 +1,40 @@
 import path from 'path'
 import { getConfig } from '@nera-static/plugin-utils'
 
-const HOST_CONFIG_PATH = path.resolve(process.cwd(), 'config/statistics.yaml')
+/**
+ * Resolved per call rather than at module scope, so edits to
+ * config/statistics.yaml are picked up without restarting `npm run dev`.
+ */
+function getHostConfigPath() {
+    return path.resolve(process.cwd(), 'config/statistics.yaml')
+}
 
-const config = getConfig(HOST_CONFIG_PATH)
+/**
+ * Normalises one frontmatter value into the list of names it contributes.
+ *
+ * Frontmatter is YAML, so a value is not necessarily a string: `year: 2024`
+ * parses to a Number, `featured: true` to a Boolean, and `tags: [a, b]` to an
+ * Array. Everything is coerced to a string so that grouping and sorting have a
+ * single type to work with, and arrays are flattened so each entry is counted
+ * on its own — which is what the documented `tags` output has always implied.
+ *
+ * `null`, `undefined` and `''` contribute nothing. Note that `0` and `false`
+ * DO count: they are real values, and the previous truthiness check silently
+ * dropped them.
+ */
+function getStatisticValues(value) {
+    return (Array.isArray(value) ? value : [value])
+        .filter((entry) => entry != null && entry !== '')
+        .map((entry) => String(entry))
+}
 
 /**
  * Build statistics for configured properties across all pages
  * @param {Array} pagesData - Array of page data objects
+ * @param {Object} config - Resolved plugin configuration
  * @returns {Object} Statistics object with counts for each configured property
  */
-function getStatistics(pagesData) {
+function getStatistics(pagesData, config) {
     const statistics = {}
 
     if (!config.count || !Array.isArray(config.count)) {
@@ -27,23 +51,24 @@ function getStatistics(pagesData) {
         statistics[element] = []
 
         pagesData.forEach(({ meta }) => {
-            if (meta[element]) {
+            getStatisticValues(meta?.[element]).forEach((name) => {
                 const existingItem = statistics[element].find(
-                    (item) => item.name === meta[element]
+                    (item) => item.name === name
                 )
 
                 if (existingItem) {
                     existingItem.amount++
                 } else {
                     statistics[element].push({
-                        name: meta[element],
+                        name,
                         amount: 1,
                     })
                 }
-            }
+            })
         })
 
-        // Apply sorting based on configuration
+        // Apply sorting based on configuration. `name` is guaranteed to be a
+        // string by getStatisticValues above.
         statistics[element].sort((a, b) => {
             let comparison = 0
 
@@ -76,6 +101,9 @@ export function getAppData(data) {
 
     return {
         ...data.app,
-        statistics: getStatistics(data.pagesData)
+        statistics: getStatistics(
+            data.pagesData,
+            getConfig(getHostConfigPath())
+        ),
     }
 }

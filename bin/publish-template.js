@@ -7,12 +7,17 @@ import { publishTemplates } from '@nera-static/plugin-utils'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const pluginName = 'plugin-statistics'
 const sourceDir = path.resolve(__dirname, '../views/')
+const force = process.argv.includes('--force')
 
 const result = publishTemplates({
     pluginName,
     sourceDir,
-    templateFiles: ['statistics.pug', 'statistics-cards.pug', 'statistics-list.pug'],
-    expectedPackageName: 'dummy', // for test-only override
+    templateFiles: [
+        'statistics.pug',
+        'statistics-cards.pug',
+        'statistics-list.pug',
+    ],
+    force,
 })
 
 process.exit(result ? 0 : 1)

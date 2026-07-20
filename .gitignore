@@ -1,2 +1,8 @@
 node_modules
 .vscode/
+
+# Test scratch directory
+test-temp/
+
+# npm credentials — never commit
+.npmrc

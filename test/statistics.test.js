@@ -1,13 +1,49 @@
+import fs from 'fs'
+import os from 'os'
 import path from 'path'
 import pug from 'pug'
 import { load } from 'cheerio'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { fileURLToPath } from 'url'
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { getAppData } from '../index.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const VIEWS = path.resolve(__dirname, '../views')
+
+// The suite runs in a temp cwd and writes its own config. It used to rely on
+// the package's own config/statistics.yaml sitting at the repo root — a file no
+// real consumer has, since the shipped config is documentation only and is
+// never merged into a site.
+let tmpDir
+let originalCwd
+
+beforeAll(() => {
+    originalCwd = process.cwd()
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nera-statistics-'))
+    fs.mkdirSync(path.join(tmpDir, 'config'), { recursive: true })
+    process.chdir(tmpDir)
+})
+
+afterAll(() => {
+    process.chdir(originalCwd)
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+})
+
+function writeConfig(yaml) {
+    fs.writeFileSync(path.join(tmpDir, 'config/statistics.yaml'), yaml)
+}
+
+const DEFAULT_CONFIG = 'count:\n  - category\n  - topic\n  - tags\n'
+
+const render = (template, app) =>
+    load(pug.compileFile(path.join(VIEWS, template))({ app }))
 
 describe('Statistics Plugin', () => {
     let mockData
 
     beforeEach(() => {
+        writeConfig(DEFAULT_CONFIG)
+
         mockData = {
             app: {
                 title: 'Test Site',
@@ -102,24 +138,6 @@ describe('Statistics Plugin', () => {
         expect(topicNames).toEqual(['JavaScript', 'Python'])
     })
 
-    it('should handle custom sort by count ascending', () => {
-        // Test with current data structure - default behavior
-        const result = getAppData(mockData)
-
-        // With current test data, categories: Design(1), Tech(2)
-        // Default sort is alphabetical by name
-        expect(result.statistics.category[0].name).toBe('Design')
-        expect(result.statistics.category[1].name).toBe('Tech')
-    })
-
-    it('should handle empty display configuration gracefully', () => {
-        const result = getAppData(mockData)
-
-        // Should still work with default sorting
-        expect(result.statistics).toBeDefined()
-        expect(Array.isArray(result.statistics.category)).toBe(true)
-    })
-
     it('should handle empty or missing data gracefully', () => {
         const emptyData = { app: {}, pagesData: [] }
         const result = getAppData(emptyData)
@@ -143,154 +161,269 @@ describe('Statistics Plugin', () => {
     })
 
     it('should handle pages without configured properties', () => {
-        const dataWithMissingProps = {
+        const result = getAppData({
             app: {},
-            pagesData: [
-                {
-                    content: '<h1>Page</h1>',
-                    meta: {
-                        title: 'Page without props',
-                        // No category, topic, or tags
-                    },
-                },
-            ],
-        }
-
-        const result = getAppData(dataWithMissingProps)
+            pagesData: [{ content: '<h1>Page</h1>', meta: { title: 'Page' } }],
+        })
 
         expect(result.statistics.category).toEqual([])
         expect(result.statistics.topic).toEqual([])
         expect(result.statistics.tags).toEqual([])
     })
 
-    // Template Rendering Tests
-    describe('Template Rendering', () => {
-        const mockAppWithStatistics = {
-            statistics: {
-                category: [
-                    { name: 'Design', amount: 1 },
-                    { name: 'Tech', amount: 2 },
-                ],
-                topic: [
-                    { name: 'JavaScript', amount: 2 },
-                    { name: 'Python', amount: 1 },
-                ],
-            },
-        }
+    it('warns and returns nothing when count is not configured', () => {
+        writeConfig('display:\n  sort_by: "name"\n')
 
-        it('renders statistics table template correctly', () => {
-            const templatePath = path.resolve('views/statistics.pug')
+        expect(getAppData(mockData).statistics).toEqual({})
+    })
+})
 
-            const compileTemplate = pug.compileFile(templatePath, {
-                basedir: path.resolve('.'),
-            })
+describe('sorting configuration', () => {
+    const pagesData = [
+        { meta: { category: 'Tech' } },
+        { meta: { category: 'Tech' } },
+        { meta: { category: 'Design' } },
+    ]
 
-            const html = compileTemplate({
-                app: mockAppWithStatistics,
-            })
+    it('sorts by count ascending when configured', () => {
+        writeConfig(
+            'count:\n  - category\ndisplay:\n  sort_by: "count"\n  sort_order: "asc"\n'
+        )
 
-            const $ = load(html)
+        expect(getAppData({ app: {}, pagesData }).statistics.category).toEqual([
+            { name: 'Design', amount: 1 },
+            { name: 'Tech', amount: 2 },
+        ])
+    })
 
-            // Check main container
-            expect($('.statistics')).toHaveLength(1)
+    it('sorts by count descending when configured', () => {
+        writeConfig(
+            'count:\n  - category\ndisplay:\n  sort_by: "count"\n  sort_order: "desc"\n'
+        )
 
-            // Check categories
-            const categorySection = $('.statistics__category').first()
-            expect(categorySection.find('.statistics__title').text()).toBe(
-                'Category'
+        expect(getAppData({ app: {}, pagesData }).statistics.category).toEqual([
+            { name: 'Tech', amount: 2 },
+            { name: 'Design', amount: 1 },
+        ])
+    })
+
+    it('sorts by name descending when configured', () => {
+        writeConfig(
+            'count:\n  - category\ndisplay:\n  sort_order: "desc"\n'
+        )
+
+        expect(
+            getAppData({ app: {}, pagesData }).statistics.category.map(
+                (i) => i.name
             )
+        ).toEqual(['Tech', 'Design'])
+    })
 
-            const categoryRows = categorySection.find('.statistics__row')
-            expect(categoryRows).toHaveLength(2)
+    it('falls back to defaults when display is absent', () => {
+        writeConfig('count:\n  - category\n')
 
-            // Check first category row
-            const firstRow = categoryRows.first()
-            expect(firstRow.find('.statistics__cell').eq(0).text()).toBe(
-                'Design'
+        expect(
+            getAppData({ app: {}, pagesData }).statistics.category.map(
+                (i) => i.name
             )
-            expect(firstRow.find('.statistics__cell--count').text()).toBe('1')
+        ).toEqual(['Design', 'Tech'])
+    })
 
-            // Check second category row
-            const secondRow = categoryRows.eq(1)
-            expect(secondRow.find('.statistics__cell').eq(0).text()).toBe(
-                'Tech'
-            )
-            expect(secondRow.find('.statistics__cell--count').text()).toBe('2')
+    it('picks up a config change without a restart', () => {
+        writeConfig('count:\n  - category\n')
+        expect(
+            getAppData({ app: {}, pagesData }).statistics.category[0].name
+        ).toBe('Design')
+
+        writeConfig(
+            'count:\n  - category\ndisplay:\n  sort_by: "count"\n  sort_order: "desc"\n'
+        )
+        expect(
+            getAppData({ app: {}, pagesData }).statistics.category[0].name
+        ).toBe('Tech')
+    })
+})
+
+describe('non-string frontmatter values', () => {
+    // Frontmatter is YAML, so these are the types markdown-it-meta really
+    // produces. Each case needs >= 2 distinct values: a sort comparator is
+    // never invoked for a one-element array, which is why a small test site
+    // used to pass while real content crashed the build.
+
+    it('counts numeric values without crashing', () => {
+        writeConfig('count:\n  - year\n')
+
+        const result = getAppData({
+            app: {},
+            pagesData: [
+                { meta: { year: 2024 } },
+                { meta: { year: 2023 } },
+                { meta: { year: 2024 } },
+            ],
         })
 
-        it('renders statistics cards template correctly', () => {
-            const templatePath = path.resolve('views/statistics-cards.pug')
+        expect(result.statistics.year).toEqual([
+            { name: '2023', amount: 1 },
+            { name: '2024', amount: 2 },
+        ])
+    })
 
-            const compileTemplate = pug.compileFile(templatePath, {
-                basedir: path.resolve('.'),
-            })
+    it('counts boolean values, including false', () => {
+        writeConfig('count:\n  - featured\n')
 
-            const html = compileTemplate({
-                app: mockAppWithStatistics,
-            })
-
-            const $ = load(html)
-
-            // Check main container has cards modifier
-            expect($('.statistics--cards')).toHaveLength(1)
-
-            // Check category cards
-            const categoryCards = $('.statistics__category')
-                .first()
-                .find('.statistics__card')
-            expect(categoryCards).toHaveLength(2)
-
-            // Check first card
-            const firstCard = categoryCards.first()
-            expect(firstCard.find('.statistics__card-name').text()).toBe(
-                'Design'
-            )
-            expect(firstCard.find('.statistics__card-count').text()).toBe('1')
+        const result = getAppData({
+            app: {},
+            pagesData: [
+                { meta: { featured: true } },
+                { meta: { featured: false } },
+                { meta: { featured: true } },
+            ],
         })
 
-        it('renders statistics list template correctly', () => {
-            const templatePath = path.resolve('views/statistics-list.pug')
+        expect(result.statistics.featured).toEqual([
+            { name: 'false', amount: 1 },
+            { name: 'true', amount: 2 },
+        ])
+    })
 
-            const compileTemplate = pug.compileFile(templatePath, {
-                basedir: path.resolve('.'),
-            })
+    it('counts zero as a real value', () => {
+        writeConfig('count:\n  - revision\n')
 
-            const html = compileTemplate({
-                app: mockAppWithStatistics,
-            })
-
-            const $ = load(html)
-
-            // Check main container has list modifier
-            expect($('.statistics--list')).toHaveLength(1)
-
-            // Check category list items
-            const categoryItems = $('.statistics__category')
-                .first()
-                .find('.statistics__item')
-            expect(categoryItems).toHaveLength(2)
-
-            // Check first list item
-            const firstItem = categoryItems.first()
-            expect(firstItem.find('.statistics__name').text()).toBe('Design')
-            expect(firstItem.find('.statistics__count').text()).toBe('1')
+        const result = getAppData({
+            app: {},
+            pagesData: [{ meta: { revision: 0 } }, { meta: { revision: 1 } }],
         })
 
-        it('handles empty statistics gracefully in templates', () => {
-            const templatePath = path.resolve('views/statistics.pug')
+        expect(result.statistics.revision).toEqual([
+            { name: '0', amount: 1 },
+            { name: '1', amount: 1 },
+        ])
+    })
 
-            const compileTemplate = pug.compileFile(templatePath, {
-                basedir: path.resolve('.'),
-            })
+    it('counts each entry of a list value separately', () => {
+        // `tags` is in the shipped default config and the README documents
+        // per-tag counts, but a YAML list used to throw.
+        writeConfig('count:\n  - tags\n')
 
-            const html = compileTemplate({
-                app: { statistics: {} },
-            })
-
-            const $ = load(html)
-
-            // Should render empty container or no content
-            expect($('.statistics__category')).toHaveLength(0)
+        const result = getAppData({
+            app: {},
+            pagesData: [
+                { meta: { tags: ['frontend', 'css'] } },
+                { meta: { tags: ['frontend'] } },
+            ],
         })
+
+        expect(result.statistics.tags).toEqual([
+            { name: 'css', amount: 1 },
+            { name: 'frontend', amount: 2 },
+        ])
+    })
+
+    it('ignores null, undefined and empty-string values', () => {
+        writeConfig('count:\n  - category\n')
+
+        const result = getAppData({
+            app: {},
+            pagesData: [
+                { meta: { category: null } },
+                { meta: { category: '' } },
+                { meta: {} },
+                { meta: { category: 'Tech' } },
+            ],
+        })
+
+        expect(result.statistics.category).toEqual([
+            { name: 'Tech', amount: 1 },
+        ])
+    })
+
+    it('tolerates a page with no meta at all', () => {
+        writeConfig('count:\n  - category\n')
+
+        expect(() =>
+            getAppData({ app: {}, pagesData: [{ content: '<p>x</p>' }] })
+        ).not.toThrow()
+    })
+})
+
+describe('Template Rendering', () => {
+    const mockAppWithStatistics = {
+        statistics: {
+            category: [
+                { name: 'Design', amount: 1 },
+                { name: 'Tech', amount: 2 },
+            ],
+            topic: [
+                { name: 'JavaScript', amount: 2 },
+                { name: 'Python', amount: 1 },
+            ],
+        },
+    }
+
+    it('renders statistics table template correctly', () => {
+        const $ = render('statistics.pug', mockAppWithStatistics)
+
+        expect($('.statistics')).toHaveLength(1)
+
+        const categorySection = $('.statistics__category').first()
+        expect(categorySection.find('.statistics__title').text()).toBe(
+            'Category'
+        )
+
+        const categoryRows = categorySection.find('.statistics__row')
+        expect(categoryRows).toHaveLength(2)
+
+        const firstRow = categoryRows.first()
+        expect(firstRow.find('.statistics__cell').eq(0).text()).toBe('Design')
+        expect(firstRow.find('.statistics__cell--count').text()).toBe('1')
+
+        const secondRow = categoryRows.eq(1)
+        expect(secondRow.find('.statistics__cell').eq(0).text()).toBe('Tech')
+        expect(secondRow.find('.statistics__cell--count').text()).toBe('2')
+    })
+
+    it('renders statistics cards template correctly', () => {
+        const $ = render('statistics-cards.pug', mockAppWithStatistics)
+
+        expect($('.statistics--cards')).toHaveLength(1)
+
+        const categoryCards = $('.statistics__category')
+            .first()
+            .find('.statistics__card')
+        expect(categoryCards).toHaveLength(2)
+
+        const firstCard = categoryCards.first()
+        expect(firstCard.find('.statistics__card-name').text()).toBe('Design')
+        expect(firstCard.find('.statistics__card-count').text()).toBe('1')
+    })
+
+    it('renders statistics list template correctly', () => {
+        const $ = render('statistics-list.pug', mockAppWithStatistics)
+
+        expect($('.statistics--list')).toHaveLength(1)
+
+        const categoryItems = $('.statistics__category')
+            .first()
+            .find('.statistics__item')
+        expect(categoryItems).toHaveLength(2)
+
+        const firstItem = categoryItems.first()
+        expect(firstItem.find('.statistics__name').text()).toBe('Design')
+        expect(firstItem.find('.statistics__count').text()).toBe('1')
+    })
+
+    it('handles empty statistics gracefully in templates', () => {
+        const $ = render('statistics.pug', { statistics: {} })
+
+        expect($('.statistics__category')).toHaveLength(0)
+    })
+
+    it('renders numeric names produced from numeric frontmatter', () => {
+        const $ = render('statistics-list.pug', {
+            statistics: { year: [{ name: '2024', amount: 3 }] },
+        })
+
+        expect($('.statistics__name').text()).toBe('2024')
+        expect($('.statistics__count').text()).toBe('3')
     })
 })

@@ -1,6 +1,6 @@
 {
     "name": "@nera-static/plugin-statistics",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "description": "A plugin for the Nera static site generator that creates statistics by counting page properties like categories, topics, or any other metadata field.",
     "main": "index.js",
     "scripts": {
@@ -19,7 +19,8 @@
         "bin",
         "config",
         "views",
-        "index.js"
+        "index.js",
+        "CHANGELOG.md"
     ],
     "keywords": [
         "nera",
@@ -44,7 +45,7 @@
     },
     "homepage": "https://github.com/seebaermichi/nera-plugin-statistics#readme",
     "dependencies": {
-        "@nera-static/plugin-utils": "^1.1.0"
+        "@nera-static/plugin-utils": "^1.2.0"
     },
     "engines": {
         "node": ">=18"
