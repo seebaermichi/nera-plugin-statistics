@@ -6,7 +6,8 @@
     "scripts": {
         "publish-template": "node ./bin/publish-template.js",
         "lint": "eslint .",
-        "test": "vitest"
+        "test": "vitest",
+        "prepare": "husky"
     },
     "type": "module",
     "exports": {
@@ -44,6 +45,9 @@
         "url": "https://github.com/seebaermichi/nera-plugin-statistics/issues"
     },
     "homepage": "https://github.com/seebaermichi/nera-plugin-statistics#readme",
+    "publishConfig": {
+        "access": "public"
+    },
     "dependencies": {
         "@nera-static/plugin-utils": "^1.2.0"
     },
