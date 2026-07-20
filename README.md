@@ -1,5 +1,8 @@
 # @nera-static/plugin-statistics
 
+[![Test](https://github.com/seebaermichi/nera-plugin-statistics/actions/workflows/test.yml/badge.svg)](https://github.com/seebaermichi/nera-plugin-statistics/actions/workflows/test.yml)
+[![npm version](https://img.shields.io/npm/v/@nera-static/plugin-statistics)](https://www.npmjs.com/package/@nera-static/plugin-statistics)
+
 A plugin for the [Nera](https://github.com/seebaermichi/nera) static site generator that creates statistics by counting metadata properties like categories, topics, tags, or any other field across your content.
 
 ## ✨ Features
