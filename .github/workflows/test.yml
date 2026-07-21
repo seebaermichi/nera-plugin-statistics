@@ -15,8 +15,8 @@ jobs:
             matrix:
                 # Node 18 is deliberately absent: the dev-only `cheerio`
                 # dependency pulls in `undici`, which needs a global `File`
-                # (Node 20+). `engines` stays >=18 because consumers never
-                # install devDependencies.
+                # (Node 20+), as does the vitest 4 / vite 8 toolchain.
+                # `engines` is >=20 to match.
                 node-version: [20, 22]
 
         steps:
