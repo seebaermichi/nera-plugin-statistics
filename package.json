@@ -1,6 +1,6 @@
 {
     "name": "@nera-static/plugin-statistics",
-    "version": "2.2.0",
+    "version": "2.2.1",
     "description": "A plugin for the Nera static site generator that creates statistics by counting page properties like categories, topics, or any other metadata field.",
     "main": "index.js",
     "scripts": {

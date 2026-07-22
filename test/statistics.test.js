@@ -344,6 +344,109 @@ describe('non-string frontmatter values', () => {
             getAppData({ app: {}, pagesData: [{ content: '<p>x</p>' }] })
         ).not.toThrow()
     })
+
+    it('drops mapping values instead of counting "[object Object]"', () => {
+        // `author: {name: ..., url: ...}` is an ordinary frontmatter shape.
+        // Stringifying it put a literal `[object Object]` row in the rendered
+        // table — user-visible garbage rather than a build error.
+        writeConfig('count:\n  - author\n')
+
+        const result = getAppData({
+            app: {},
+            pagesData: [
+                { meta: { author: { name: 'Ada', url: 'https://x.test' } } },
+                { meta: { author: 'Ada' } },
+            ],
+        })
+
+        expect(result.statistics.author).toEqual([{ name: 'Ada', amount: 1 }])
+    })
+
+    it('drops mapping and nested-array entries inside a list value', () => {
+        writeConfig('count:\n  - tags\n')
+
+        const result = getAppData({
+            app: {},
+            pagesData: [
+                { meta: { tags: ['frontend', { b: 2 }, ['nested']] } },
+            ],
+        })
+
+        expect(result.statistics.tags).toEqual([
+            { name: 'frontend', amount: 1 },
+        ])
+    })
+
+    it('still counts Date values, which js-yaml produces for unquoted dates', () => {
+        // `date: 2024-05-01` in frontmatter parses to a Date, not a string, so
+        // a blanket non-primitive filter would silently stop counting a field
+        // that counts today. `typeof` calls a Date an object; it is not
+        // garbage, so it stays.
+        writeConfig('count:\n  - date\n')
+
+        const result = getAppData({
+            app: {},
+            pagesData: [{ meta: { date: new Date('2024-05-01T00:00:00Z') } }],
+        })
+
+        expect(result.statistics.date).toHaveLength(1)
+        expect(result.statistics.date[0].amount).toBe(1)
+        expect(typeof result.statistics.date[0].name).toBe('string')
+        expect(result.statistics.date[0].name).toContain('2024')
+    })
+
+    it('counts values case-sensitively', () => {
+        // Documented in the README: the counting match is exact while the sort
+        // is case-insensitive, so an inconsistently capitalised corpus splits
+        // into two entries that sort next to each other.
+        writeConfig('count:\n  - category\n')
+
+        const result = getAppData({
+            app: {},
+            pagesData: [
+                { meta: { category: 'Tech' } },
+                { meta: { category: 'tech' } },
+            ],
+        })
+
+        expect(result.statistics.category).toEqual([
+            { name: 'Tech', amount: 1 },
+            { name: 'tech', amount: 1 },
+        ])
+    })
+})
+
+describe('invalid count configuration', () => {
+    beforeEach(() => {
+        writeConfig(DEFAULT_CONFIG)
+    })
+
+    it('returns empty statistics when count is a scalar rather than a list', () => {
+        // The natural single-property mistake. It fails exactly like having no
+        // config at all: one console warning, `app.statistics` is `{}`, and
+        // every template's `if app.statistics` guard still passes, so the page
+        // renders empty with no error.
+        writeConfig('count: category\n')
+
+        const result = getAppData({
+            app: {},
+            pagesData: [{ meta: { category: 'Tech' } }],
+        })
+
+        expect(result.statistics).toEqual({})
+    })
+
+    it('returns empty statistics when the config file is absent', () => {
+        fs.rmSync(path.join(tmpDir, 'config/statistics.yaml'))
+
+        const result = getAppData({
+            app: { title: 'Test Site' },
+            pagesData: [{ meta: { category: 'Tech' } }],
+        })
+
+        expect(result.statistics).toEqual({})
+        expect(result.title).toBe('Test Site')
+    })
 })
 
 describe('Template Rendering', () => {

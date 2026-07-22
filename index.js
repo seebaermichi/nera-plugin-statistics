@@ -21,10 +21,32 @@ function getHostConfigPath() {
  * `null`, `undefined` and `''` contribute nothing. Note that `0` and `false`
  * DO count: they are real values, and the previous truthiness check silently
  * dropped them.
+ *
+ * Mappings and nested arrays are dropped. `author: {name: …, url: …}` is an
+ * ordinary frontmatter shape, and stringifying it produced a literal
+ * `[object Object]` row in the rendered table — user-visible garbage rather
+ * than a build error, so it shipped. There is no sensible single name for a
+ * mapping.
+ *
+ * `Date` is deliberately NOT dropped, even though `typeof` calls it an object:
+ * an unquoted `date: 2024-05-01` in frontmatter is parsed into a Date by
+ * js-yaml, so excluding it would silently stop counting a field that counts
+ * today. Its `String()` form is verbose and timezone-dependent, but it is a
+ * real value, not garbage. Quote the value in frontmatter to count it as a
+ * plain string.
  */
+function isCountable(entry) {
+    if (entry instanceof Date) {
+        return true
+    }
+
+    return typeof entry !== 'object' && typeof entry !== 'function'
+}
+
 function getStatisticValues(value) {
     return (Array.isArray(value) ? value : [value])
         .filter((entry) => entry != null && entry !== '')
+        .filter(isCountable)
         .map((entry) => String(entry))
 }
 
