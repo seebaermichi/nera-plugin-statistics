@@ -5,6 +5,8 @@
 
 A plugin for the [Nera](https://github.com/seebaermichi/nera) static site generator that creates statistics by counting metadata properties like categories, topics, tags, or any other field across your content.
 
+📖 **Documentation:** [nera.js.org](https://nera.js.org)
+
 ## ✨ Features
 
 - Count any page meta property (e.g., `tags`, `category`, `topic`)
@@ -335,6 +337,7 @@ Michael Becker
 
 - [Plugin Repository](https://github.com/seebaermichi/nera-plugin-statistics)
 - [NPM Package](https://www.npmjs.com/package/@nera-static/plugin-statistics)
+- [Nera Website](https://nera.js.org)
 - [Nera Static Site Generator](https://github.com/seebaermichi/nera)
 
 ## 🧩 Compatibility
