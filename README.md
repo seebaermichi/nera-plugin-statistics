@@ -147,8 +147,11 @@ include ../vendor/plugin-statistics/statistics
 ```
 
 Include paths are relative to the including file, so the `../` above assumes a
-layout in `views/layouts/`. Adjust the number of `../` segments to match. On
-Nera v4.3.0+ you can use the location-independent form instead:
+layout one level below the views folder — such as the base layout
+`theme/views/layouts/layout.pug` that `nera new` scaffolds. Adjust the number
+of `../` segments to match. On Nera v4.3.0+ you can use the
+location-independent form instead — there is no `theme/` or `views/` segment in
+it:
 
 ```pug
 include /vendor/plugin-statistics/statistics
@@ -168,14 +171,19 @@ npx nera-statistics
 This copies:
 
 ```
-views/vendor/plugin-statistics/
+theme/views/vendor/plugin-statistics/
 ├── statistics.pug         # Table layout
 ├── statistics-cards.pug   # Card layout
 └── statistics-list.pug    # List layout
 ```
 
+That is the destination on a site scaffolded with `nera new`, whose views live
+in `theme/views/`. On an older site that renders from a root `views/` folder,
+drop the `theme/` prefix — the command picks the right destination
+automatically.
+
 > **Publishing skips the whole directory, not individual files.** If
-> `views/vendor/plugin-statistics/` already exists, the command copies
+> `theme/views/vendor/plugin-statistics/` already exists, the command copies
 > **nothing** and still exits successfully — even if you deleted one of the
 > files. This also means **upgrading the plugin never updates your published
 > templates.** To pull in a newer version, re-run with `--force`:
@@ -345,10 +353,12 @@ Michael Becker
 - **Nera**: v4.1.0+ — a baseline rather than a requirement; the plugin reads only
   page frontmatter and uses no generator feature above the 4.x line. The optional
   `config/plugin-order.yaml` technique above needs v4.2.0+, and the
-  root-absolute `include /vendor/…` form needs v4.3.0+.
+  root-absolute `include /vendor/…` form needs v4.3.0+. The `theme/` folder
+  layout used in the paths above — what `nera new` scaffolds — needs v4.6.0+.
 - **Node.js**: >= 20.0.0
 - **Plugin Utils**: `^1.2.0` — where `--force` and the project-shape validation
-  landed, both of which `npx nera-statistics` relies on.
+  landed, both of which `npx nera-statistics` relies on. Publishing into
+  `theme/views/vendor/` needs 1.5.0+, which a fresh install resolves.
 - **Plugin API**: Uses `getAppData()` to count page metadata
 
 ## 📦 License
