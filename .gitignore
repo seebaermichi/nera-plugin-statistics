@@ -1,14 +1,33 @@
-node_modules
+# Dependencies
+node_modules/
+
+# Logs
+npm-debug.log*
+
+# Environment and credentials: never commit
+.env
+.env.local
+.npmrc
+
+# OS and editor
+.DS_Store
+Thumbs.db
 .vscode/
 
-# Test scratch directory
-test-temp/
+# Test and build output
+coverage/
+.vitest/
+.tmp/
+dist/
+build/
+.cache/
+.nera-cache/
 
-# npm credentials — never commit
-.npmrc
-plans/
+# Browser-test artifacts (Playwright MCP)
+.playwright-mcp/
 
 # Internal development files (plans, Snagio workflow, specs) never belong in the repo
+plans/
 /.claude/
 /.mcp.json
 /ROADMAP*.md
